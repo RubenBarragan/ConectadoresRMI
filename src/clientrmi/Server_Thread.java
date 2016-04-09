@@ -62,13 +62,9 @@ public class Server_Thread extends Thread {
                 ResultSet rs = stmt2.executeQuery("select * from devices");
 
                 while (rs.next()) {
-                    String temp = "";
-                    System.out.println(rs.getString(2) + "  " + rs.getString(3) + "  " + rs.getString(4) + "  " + rs.getString(5));
-                    temp = stub.insertRow(rs.getString(2), rs.getString(3), rs.getString(4), rs.getString(5));
-                    while (temp.equals("")) {
-
-                    }
+                    stub.recoveryBD(rs.getString(2), rs.getString(3), rs.getString(4), rs.getString(5));
                 }
+                stub.giveMeYourBD();
             }
 
         } catch (RemoteException ex) {
