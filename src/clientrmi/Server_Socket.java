@@ -30,6 +30,7 @@ public class Server_Socket {
     private DataOutputStream toClient;
     private DataInputStream fromClient;
     boolean RMIconnected = false;
+    boolean sendBD = false;
     RMI_Interface stub;
     ConnectBD cbd;
     Connection conn;

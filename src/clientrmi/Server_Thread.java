@@ -53,17 +53,18 @@ public class Server_Thread extends Thread {
             //Reconnect RMI.
             Registry registry = LocateRegistry.getRegistry(serverIP, 1099);
             stub = (RMI_Interface) registry.lookup("rmi://" + serverIP + ":1099/RMI_Interface");
-
+            
             System.out.println("RMI Connection established...[OK]");
             PreviusClass.stub = stub;
 
-            if (stub.isEmpty()) {
+            if (!PreviusClass.sendBD) {
                 Statement stmt2 = PreviusClass.conn.createStatement();
                 ResultSet rs = stmt2.executeQuery("select * from devices");
 
                 while (rs.next()) {
                     stub.recoveryBD(rs.getString(2), rs.getString(3), rs.getString(4), rs.getString(5));
                 }
+                PreviusClass.sendBD = true;
                 stub.giveMeYourBD();
             }
 
@@ -112,6 +113,7 @@ public class Server_Thread extends Thread {
                 stub.updateRow(ibt, msg, datetime);
                 System.out.println("External query performed...[OK]");
             } else {
+                PreviusClass.sendBD = false;
                 reconectRMI();
             }
 
@@ -122,6 +124,7 @@ public class Server_Thread extends Thread {
             try {
                 stub.sayHello(); // Function to test RMI connection.
             } catch (Exception ex1) {
+                PreviusClass.sendBD = false;
                 reconectRMI();
             }
 
