@@ -25,7 +25,7 @@ import java.sql.*;
 public class Server_Socket {
 
     ServerSocket theServer;
-    String serverIP = "10.0.5.232";
+    String serverIP = "10.0.5.215";
     int counter = 0;
     private DataOutputStream toClient;
     private DataInputStream fromClient;

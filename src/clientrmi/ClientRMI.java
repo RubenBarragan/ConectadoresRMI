@@ -36,7 +36,7 @@ import java.util.logging.Logger;
  */
 public class ClientRMI{
 
-    static String serverIP = "10.0.5.232";
+    static String serverIP = "10.0.5.215";
     
     /**
      * @param args the command line arguments
