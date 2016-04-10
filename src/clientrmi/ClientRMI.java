@@ -71,5 +71,4 @@ public class ClientRMI{
         //Instance to connect with clients.
         Server_Socket s = new Server_Socket(4050, stub);
     }
-    
 }

@@ -69,10 +69,9 @@ public class ServerRMI implements RMI_Interface {
     }
 
     //Only local computing.
-    public ResultSet selectRow(String id) {
+    public String selectRow(String id) {
 
         String returnedQuery = "";
-        ResultSet rs = null;
 
         ConnectBD cbd = new ConnectBD();
         try {
@@ -82,14 +81,18 @@ public class ServerRMI implements RMI_Interface {
             Statement stmt = con.createStatement();
 
             //devices is the table's name.
-            rs = stmt.executeQuery("select * from devices where id_bluetooth = '" + id + "'");
+            ResultSet rs = stmt.executeQuery("select * from devices where id_bluetooth = '" + id + "'");
+
+            while (rs.next()) {
+                returnedQuery += rs.getInt(1) + "  " + rs.getString(2) + "  " + rs.getString(3) + " " + rs.getString(4) + " " + rs.getString(5);
+            }
 
             con.close();
         } catch (SQLException ex) {
             Logger.getLogger(ServerRMI.class.getName()).log(Level.SEVERE, null, ex);
         }
 
-        return rs;
+        return returnedQuery;
     }
 
     public String insertRow(String ibt, String name, String lugar, String datetime) {
@@ -149,15 +152,13 @@ public class ServerRMI implements RMI_Interface {
 
     //Only local computing.
     public boolean exists_idBT(String id) {
-        ResultSet rs = selectRow(id);
-        
-        try {
-            return rs.isBeforeFirst();
-        } catch (SQLException ex) {
-            Logger.getLogger(ServerRMI.class.getName()).log(Level.SEVERE, null, ex);
+        String s = selectRow(id);
+
+        if (s.equals("")) {
+            return false;
+        } else {
+            return true;
         }
-        
-        return false;
     }
 
     //Only local computing.
@@ -201,29 +202,6 @@ public class ServerRMI implements RMI_Interface {
     }
 
     public void giveMeYourBD() {
-        ResultSet rs = getResultSetSelectAll();
-
-        Registry registry;
-        try {
-            registry = LocateRegistry.getRegistry(externalIP, 1099);
-            RMI_Interface stub = (RMI_Interface) registry.lookup("rmi://" + externalIP + ":1099/RMI_Interface");
-            
-            while (rs.next()) {
-                stub.recoveryBD(rs.getString(2), rs.getString(3), rs.getString(4), rs.getString(5));
-            }
-            
-        } catch (RemoteException ex) {
-            Logger.getLogger(ServerRMI.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (NotBoundException ex) {
-            Logger.getLogger(ServerRMI.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (SQLException ex) {
-            Logger.getLogger(ServerRMI.class.getName()).log(Level.SEVERE, null, ex);
-        }
-
-    }
-
-    public ResultSet getResultSetSelectAll() {
-
         ResultSet rs = null;
 
         ConnectBD cbd = new ConnectBD();
@@ -236,12 +214,27 @@ public class ServerRMI implements RMI_Interface {
             //devices is the table's name.
             rs = stmt.executeQuery("select * from devices");
 
+            Registry registry;
+            try {
+                registry = LocateRegistry.getRegistry(externalIP, 1099);
+                RMI_Interface stub = (RMI_Interface) registry.lookup("rmi://" + externalIP + ":1099/RMI_Interface");
+
+                while (rs.next()) {
+                    stub.recoveryBD(rs.getString(2), rs.getString(3), rs.getString(4), rs.getString(5));
+                }
+
+            } catch (RemoteException ex) {
+                Logger.getLogger(ServerRMI.class.getName()).log(Level.SEVERE, null, ex);
+            } catch (NotBoundException ex) {
+                Logger.getLogger(ServerRMI.class.getName()).log(Level.SEVERE, null, ex);
+            } catch (SQLException ex) {
+                Logger.getLogger(ServerRMI.class.getName()).log(Level.SEVERE, null, ex);
+            }
+
             con.close();
         } catch (SQLException ex) {
             Logger.getLogger(ServerRMI.class.getName()).log(Level.SEVERE, null, ex);
         }
-
-        return rs;
     }
 
     public void startServer() {
