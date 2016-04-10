@@ -53,7 +53,7 @@ public class Server_Thread extends Thread {
             //Reconnect RMI.
             Registry registry = LocateRegistry.getRegistry(serverIP, 1099);
             stub = (RMI_Interface) registry.lookup("rmi://" + serverIP + ":1099/RMI_Interface");
-            
+
             System.out.println("RMI Connection established...[OK]");
             PreviusClass.stub = stub;
 
@@ -69,12 +69,14 @@ public class Server_Thread extends Thread {
             }
 
         } catch (RemoteException ex) {
-            Logger.getLogger(Server_Socket.class.getName()).log(Level.SEVERE, null, ex);
+            //Logger.getLogger(Server_Socket.class.getName()).log(Level.SEVERE, null, ex);
             System.out.println("RMI Connecting...[FAILED]");
         } catch (NotBoundException ex) {
-            Logger.getLogger(Server_Thread.class.getName()).log(Level.SEVERE, null, ex);
+            System.out.println("RMI NotBoundException");
+            //Logger.getLogger(Server_Thread.class.getName()).log(Level.SEVERE, null, ex);
         } catch (SQLException ex) {
-            Logger.getLogger(Server_Thread.class.getName()).log(Level.SEVERE, null, ex);
+            System.out.println("RMI SQLException");
+            //Logger.getLogger(Server_Thread.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
 
@@ -87,34 +89,125 @@ public class Server_Thread extends Thread {
         }
     }
 
+    public String insertPerson(String ibt, String name, String password) {
+
+        String returnedQuery = "Cosa";
+
+        ConnectBD cbd = new ConnectBD();
+        try {
+            Connection con = cbd.connectBD();
+
+            //stmt is the statement's object. It's used to create statements or queries.
+            Statement stmt = con.createStatement();
+
+            //devices is the table's name.
+            stmt.executeUpdate("INSERT INTO `locator`.`devices` (`id_bluetooth`, `name`, `password`) VALUES ('" + ibt + "', '" + name + "', '" + password + "')");
+
+            System.out.println("All right");
+
+            con.close();
+        } catch (SQLException ex) {
+            Logger.getLogger(ServerRMI.class.getName()).log(Level.SEVERE, null, ex);
+        }
+
+        return returnedQuery;
+    }
+
+    public boolean checkID(String idBT, String name, String password) {
+        boolean trueID = false;
+
+        ConnectBD cbd = new ConnectBD();
+        try {
+            Connection con = cbd.connectBD();
+            //stmt is the statement's object. It's used to create statements or queries.
+            Statement stmt = con.createStatement();
+
+            //devices is the table's name.
+            ResultSet rs = stmt.executeQuery("select * from devices where id_bluetooth = '" + idBT + "'");
+
+            while (rs.next()) {
+                if (rs.getString(2).equals(idBT) && rs.getString(3).equals(name) && rs.getString(6).equals(password)) {
+                    trueID = true;
+                }
+            }
+            con.close();
+        } catch (SQLException ex) {
+            Logger.getLogger(ServerRMI.class.getName()).log(Level.SEVERE, null, ex);
+        }
+
+        return trueID;
+    }
+
+    public boolean checkIDexist(String idBT, String name, String password) {
+        boolean trueID = false;
+
+        ConnectBD cbd = new ConnectBD();
+        try {
+            Connection con = cbd.connectBD();
+            //stmt is the statement's object. It's used to create statements or queries.
+            Statement stmt = con.createStatement();
+
+            //devices is the table's name.
+            ResultSet rs = stmt.executeQuery("select * from devices where id_bluetooth = '" + idBT + "'");
+
+            if (rs.next()) {
+                trueID = true;
+            }
+            con.close();
+        } catch (SQLException ex) {
+            Logger.getLogger(ServerRMI.class.getName()).log(Level.SEVERE, null, ex);
+        }
+
+        return trueID;
+    }
+
     @Override
     public void run() {
         String msg = "";
 
         try {
+
             //Receive msg from the client
             msg = fromClient.readUTF();
-            System.out.println("Message Recived: " + msg);
-            String datetime = "2016-04-01 23:55:20";
-            String ibt = "bt123456789";
-            //Create the query to the local database.
-            if (PreviusClass.conn != null) {
-                Statement stmt = PreviusClass.conn.createStatement(); //stmt is the object to create statements.
-                stmt.executeUpdate("UPDATE `devices` SET `lugar`='" + msg + "',`datetime`='" + datetime + "' WHERE id_bluetooth='" + ibt + "'");
-                System.out.println("Local query performed...[OK].");
-                toClient.writeUTF("Acknowledge");
-            } else {
-                Connection conni = PreviusClass.cbd.connectBD();
-                PreviusClass.conn = conni;
-                toClient.writeUTF("noDB");
-            }
 
-            if (stub != null) {
-                stub.updateRow(ibt, msg, datetime);
-                System.out.println("External query performed...[OK]");
+            String[] args = msg.split("|");
+            if (args[0].equals("ingresar")) {
+                if (checkID(args[1], args[2], args[3])) {
+                    toClient.writeUTF("Ingresa");
+                } else {
+                    toClient.writeUTF("noIngresa");
+                }
+            } else if (args[0].equals("register")) {
+                if (!checkIDexist(args[1], args[2], args[3])) {
+                    insertPerson(args[1], args[2], args[3]);
+                    toClient.writeUTF("Registrado");
+                } else {
+                    toClient.writeUTF("yaExiste");
+                }
             } else {
-                PreviusClass.sendBD = false;
-                reconectRMI();
+
+                System.out.println("Message Recived: " + msg);
+                String datetime = "2016-04-01 23:55:20";
+                String ibt = "bt123456789";
+                //Create the query to the local database.
+                if (PreviusClass.conn != null) {
+                    Statement stmt = PreviusClass.conn.createStatement(); //stmt is the object to create statements.
+                    stmt.executeUpdate("UPDATE `devices` SET `lugar`='" + msg + "',`datetime`='" + datetime + "' WHERE id_bluetooth='" + ibt + "'");
+                    System.out.println("Local query performed...[OK].");
+                    toClient.writeUTF("Acknowledge");
+                } else {
+                    Connection conni = PreviusClass.cbd.connectBD();
+                    PreviusClass.conn = conni;
+                    toClient.writeUTF("noDB");
+                }
+
+                if (stub != null) {
+                    stub.updateRow(ibt, msg, datetime);
+                    System.out.println("External query performed...[OK]");
+                } else {
+                    PreviusClass.sendBD = false;
+                    reconectRMI();
+                }
             }
 
         } catch (IOException ex) {
