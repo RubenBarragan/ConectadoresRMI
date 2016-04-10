@@ -17,6 +17,9 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -26,8 +29,8 @@ import java.util.logging.Logger;
  */
 public class ServerRMI implements RMI_Interface {
 
-    static String externalIP = "10.0.5.232";
-    static String localIP = "10.0.5.215";
+    static String externalIP = "10.0.5.215";
+    static String localIP = "10.0.5.232";
     static int localPort = 1099;
 
     /**
@@ -69,14 +72,14 @@ public class ServerRMI implements RMI_Interface {
     }
 
     //Only local computing.
-    public String selectRow(String id) {
-
-        String returnedQuery = "";
+    public int selectRow(String id, String otherDate) {
+        // 0 = no existe 1 = si existe y hacer cambio 2= si existe y no hacer cambio
+        int returnedQuery = 0;
+        String theDate = "";
 
         ConnectBD cbd = new ConnectBD();
         try {
             Connection con = cbd.connectBD();
-
             //stmt is the statement's object. It's used to create statements or queries.
             Statement stmt = con.createStatement();
 
@@ -84,7 +87,8 @@ public class ServerRMI implements RMI_Interface {
             ResultSet rs = stmt.executeQuery("select * from devices where id_bluetooth = '" + id + "'");
 
             while (rs.next()) {
-                returnedQuery += rs.getInt(1) + "  " + rs.getString(2) + "  " + rs.getString(3) + " " + rs.getString(4) + " " + rs.getString(5);
+                theDate = rs.getString(5);
+                returnedQuery = compareDates(theDate, otherDate);
             }
 
             con.close();
@@ -93,6 +97,30 @@ public class ServerRMI implements RMI_Interface {
         }
 
         return returnedQuery;
+    }
+
+    public int compareDates(String theDate, String otherDate) {
+        int result = -1;
+        Timestamp timestamp2 = null;
+        Timestamp timestamp = null;
+        try {
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
+            Date parsedDate = dateFormat.parse(theDate);
+            timestamp = new java.sql.Timestamp(parsedDate.getTime());
+
+            Date parsedDate2 = dateFormat.parse(otherDate);
+            timestamp2 = new java.sql.Timestamp(parsedDate2.getTime());
+
+            if (timestamp.before(timestamp2)) {
+                result = 1;
+            } else {
+                result = 2;
+            }
+
+        } catch (Exception e) {//this generic but you can control another types of exception
+            System.out.println(e.toString());
+        }
+        return result;
     }
 
     public String insertRow(String ibt, String name, String lugar, String datetime) {
@@ -143,22 +171,18 @@ public class ServerRMI implements RMI_Interface {
     }
 
     public void recoveryBD(String ibt, String name, String lugar, String datetime) {
-        if (exists_idBT(ibt)) {
+        int result = exists_idBT(ibt, datetime);
+        if (result== 1) {
             updateRow(ibt, lugar, datetime);
-        } else {
+        } else if (result == 0){
             insertRow(ibt, name, lugar, datetime);
         }
     }
 
     //Only local computing.
-    public boolean exists_idBT(String id) {
-        String s = selectRow(id);
-
-        if (s.equals("")) {
-            return false;
-        } else {
-            return true;
-        }
+    public int exists_idBT(String id, String otherDate) {
+        int s = selectRow(id, otherDate);
+        return s;
     }
 
     //Only local computing.
