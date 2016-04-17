@@ -44,7 +44,7 @@ public class ServerRMI implements RMI_Interface {
     }
 
     public String sayHello() {
-        return "Hello, a wii!";
+        return "Connection RMI established...[OK]";
     }
 
     public String selectAll() {
