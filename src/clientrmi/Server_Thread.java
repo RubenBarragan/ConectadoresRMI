@@ -299,7 +299,7 @@ public class Server_Thread extends Thread {
                     toClient.writeUTF("noDB");
                 }
                 if (stub != null) {
-                    stub.updateRow(ibt, msg, datetime, "pass");
+                    stub.updateRow(ibt, lugar, datetime, "pass");
                     System.out.println("External query performed...[OK]");
                 } else {
                     PreviusClass.sendBD = false;

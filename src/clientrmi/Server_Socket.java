@@ -39,6 +39,8 @@ public class Server_Socket extends Thread {
     public Server_Socket(int puerto, RMI_Interface _stub) {
         this.stub = _stub;
         this.port = puerto;
+        
+        this.start();
     }
 
     public void run() {

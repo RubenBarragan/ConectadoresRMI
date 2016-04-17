@@ -58,7 +58,7 @@ public class ClientRMI{
         try {
             Registry registry = LocateRegistry.getRegistry(serverIP, 1099);
             stub = (RMI_Interface) registry.lookup("rmi://"+serverIP+":1099/RMI_Interface");
-            stub.sayHello();
+            System.out.println(stub.sayHello());
             
             stub.giveMeYourBD();
             
