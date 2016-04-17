@@ -32,8 +32,8 @@ import org.omg.CosNaming.NamingContextExtHelper;
  */
 public class ServerRMI implements RMI_Interface {
 
-    static String externalIP = "10.0.5.215";
-    static String localIP = "10.0.5.232";
+    static String externalIP = "10.0.5.190";
+    static String localIP = "10.0.5.215";
     static int localPort = 1099;
 
     /**

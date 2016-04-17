@@ -36,7 +36,7 @@ import java.util.logging.Logger;
  */
 public class ClientRMI{
 
-    static String serverIP = "10.0.5.215";
+    static String serverIP = "10.0.5.190";
     
     /**
      * @param args the command line arguments
@@ -59,12 +59,18 @@ public class ClientRMI{
             Registry registry = LocateRegistry.getRegistry(serverIP, 1099);
             stub = (RMI_Interface) registry.lookup("rmi://"+serverIP+":1099/RMI_Interface");
             
+            stub.giveMeYourBD();
+            
         } catch (RemoteException | NotBoundException e) {
             System.err.println("Client exception: " + e.toString());
             System.out.println("");
         }
         
         //Instance to connect with clients.
-        Server_Socket s = new Server_Socket(4050, stub);
+        Server_Socket s1 = new Server_Socket(4050, stub);
+        
+        //Instance to connect with cliends.
+        //This socket is going to update the location.
+        Server_Socket s2 = new Server_Socket(4051, stub);
     }
 }
