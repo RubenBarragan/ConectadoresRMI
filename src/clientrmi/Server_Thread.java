@@ -269,6 +269,7 @@ public class Server_Thread extends Thread {
                 //Check if the person already exists.
                 if (!checkIDexist(dataSet[1], dataSet[2], dataSet[3])) {
                     insertPerson(dataSet[1], dataSet[2], dataSet[3]);
+                    stub.insertRow(dataSet[1], dataSet[2], "", "2010-04-13 06:50:44", dataSet[3]);
                     toClient.writeUTF("signUp");
                 } else {
                     toClient.writeUTF("userExists");
