@@ -22,6 +22,9 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.omg.CORBA.ORB;
+import org.omg.CosNaming.NamingContextExt;
+import org.omg.CosNaming.NamingContextExtHelper;
 
 /**
  *
@@ -123,7 +126,7 @@ public class ServerRMI implements RMI_Interface {
         return result;
     }
 
-    public String insertRow(String ibt, String name, String lugar, String datetime) {
+    public String insertRow(String ibt, String name, String lugar, String datetime, String pass) {
 
         String returnedQuery = "Cosa";
 
@@ -135,7 +138,7 @@ public class ServerRMI implements RMI_Interface {
             Statement stmt = con.createStatement();
 
             //devices is the table's name.
-            stmt.executeUpdate("INSERT INTO `locator`.`devices` (`id_bluetooth`, `name`, `lugar`, `datetime`) VALUES ('" + ibt + "', '" + name + "', '" + lugar + "', '" + datetime + "')");
+            stmt.executeUpdate("INSERT INTO `locator`.`devices` (`id_bluetooth`, `name`, `lugar`, `datetime`, `password`) VALUES ('" + ibt + "', '" + name + "', '" + lugar + "', '" + datetime + "','" + pass + "')");
 
             System.out.println("All right");
 
@@ -147,7 +150,7 @@ public class ServerRMI implements RMI_Interface {
         return returnedQuery;
     }
 
-    public String updateRow(String ibt, String lugar, String datetime) {
+    public String updateRow(String ibt, String lugar, String datetime, String pass) {
 
         String returnedQuery = "";
 
@@ -170,12 +173,12 @@ public class ServerRMI implements RMI_Interface {
         return returnedQuery;
     }
 
-    public void recoveryBD(String ibt, String name, String lugar, String datetime) {
+    public void recoveryBD(String ibt, String name, String lugar, String datetime, String pass) {
         int result = exists_idBT(ibt, datetime);
-        if (result== 1) {
-            updateRow(ibt, lugar, datetime);
-        } else if (result == 0){
-            insertRow(ibt, name, lugar, datetime);
+        if (result == 1) {
+            updateRow(ibt, lugar, datetime, pass);
+        } else if (result == 0) {
+            insertRow(ibt, name, lugar, datetime, pass);
         }
     }
 
@@ -225,6 +228,21 @@ public class ServerRMI implements RMI_Interface {
         return _isEmpty;
     }
 
+    public RMI_Interface connectToServer(String externalip, int port) {
+        RMI_Interface stub = null;
+        try {
+            Registry registry;
+            registry = LocateRegistry.getRegistry(externalip, 1099);
+            stub = (RMI_Interface) registry.lookup("rmi://" + externalip + ":1099/RMI_Interface");
+
+        } catch (RemoteException ex) {
+            Logger.getLogger(ServerRMI.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (NotBoundException ex) {
+            Logger.getLogger(ServerRMI.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return stub;
+    }
+
     public void giveMeYourBD() {
         ResultSet rs = null;
 
@@ -238,32 +256,21 @@ public class ServerRMI implements RMI_Interface {
             //devices is the table's name.
             rs = stmt.executeQuery("select * from devices");
 
-            Registry registry;
-            try {
-                registry = LocateRegistry.getRegistry(externalIP, 1099);
-                RMI_Interface stub = (RMI_Interface) registry.lookup("rmi://" + externalIP + ":1099/RMI_Interface");
-
-                while (rs.next()) {
-                    stub.recoveryBD(rs.getString(2), rs.getString(3), rs.getString(4), rs.getString(5));
-                }
-
-            } catch (RemoteException ex) {
-                Logger.getLogger(ServerRMI.class.getName()).log(Level.SEVERE, null, ex);
-            } catch (NotBoundException ex) {
-                Logger.getLogger(ServerRMI.class.getName()).log(Level.SEVERE, null, ex);
-            } catch (SQLException ex) {
-                Logger.getLogger(ServerRMI.class.getName()).log(Level.SEVERE, null, ex);
+            
+            RMI_Interface stub = connectToServer(externalIP, 1099);
+            while (rs.next()) {
+                stub.recoveryBD(rs.getString(2), rs.getString(3), rs.getString(4), rs.getString(5), rs.getString(6));
             }
 
             con.close();
         } catch (SQLException ex) {
             Logger.getLogger(ServerRMI.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (RemoteException ex) {
+            Logger.getLogger(ServerRMI.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
 
     public void startServer() {
-        // TODO code application logic here
-
         try {
             testBDConnection();
 

@@ -59,13 +59,9 @@ public class ClientRMI{
             Registry registry = LocateRegistry.getRegistry(serverIP, 1099);
             stub = (RMI_Interface) registry.lookup("rmi://"+serverIP+":1099/RMI_Interface");
             
-            
         } catch (RemoteException | NotBoundException e) {
-            //RunnableListener R1 = new RunnableListener("Thread-1");
-            //R1.start();
             System.err.println("Client exception: " + e.toString());
             System.out.println("");
-            //e.printStackTrace();
         }
         
         //Instance to connect with clients.

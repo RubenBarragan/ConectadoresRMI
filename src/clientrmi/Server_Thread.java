@@ -17,6 +17,8 @@ import java.rmi.registry.Registry;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.sql.*;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
 
 /**
  *
@@ -62,7 +64,7 @@ public class Server_Thread extends Thread {
                 ResultSet rs = stmt2.executeQuery("select * from devices");
 
                 while (rs.next()) {
-                    stub.recoveryBD(rs.getString(2), rs.getString(3), rs.getString(4), rs.getString(5));
+                    stub.recoveryBD(rs.getString(2), rs.getString(3), rs.getString(4), rs.getString(5), rs.getString(6));
                 }
                 PreviusClass.sendBD = true;
                 stub.giveMeYourBD();
@@ -161,6 +163,90 @@ public class Server_Thread extends Thread {
         return trueID;
     }
 
+    public String buscarPersona(String nombre) {
+        String datosPersona = "";
+        ConnectBD cbd = new ConnectBD();
+        try {
+            Connection con = cbd.connectBD();
+            //stmt is the statement's object. It's used to create statements or queries.
+            Statement stmt = con.createStatement();
+
+            //devices is the table's name.
+            ResultSet rs = stmt.executeQuery("select * from devices where name = '" + nombre + "'");
+
+            while (rs.next()) {
+                datosPersona = rs.getString(3) + "#" + rs.getString(4) + "#" + rs.getString(5);
+            }
+            con.close();
+        } catch (SQLException ex) {
+            Logger.getLogger(Server_Thread.class.getName()).log(Level.SEVERE, null, ex);
+        }
+
+        return datosPersona;
+    }
+
+    public String buscarTodos() {
+        String datosPersonas = "";
+        ConnectBD cbd = new ConnectBD();
+        try {
+            Connection con = cbd.connectBD();
+            //stmt is the statement's object. It's used to create statements or queries.
+            Statement stmt = con.createStatement();
+
+            //devices is the table's name.
+            ResultSet rs = stmt.executeQuery("select * from devices");
+            int i = 0;
+            while (rs.next()) {
+                datosPersonas += rs.getString(3) + "#" + rs.getString(4) + "#" + rs.getString(5) + "#";
+                i++;
+            }
+            datosPersonas = deleteLastChar(datosPersonas);
+            con.close();
+        } catch (SQLException ex) {
+            Logger.getLogger(Server_Thread.class.getName()).log(Level.SEVERE, null, ex);
+        }
+
+        return datosPersonas;
+    }
+
+    public String getDate() {
+        Calendar cal = Calendar.getInstance();
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
+        //System.out.println(sdf.format(cal.getTime()));
+        return sdf.format(cal.getTime());
+    }
+
+    public String deleteLastChar(String s) {
+        if (!s.isEmpty()) {
+            return s.substring(0, s.length() - 1);
+        } else {
+            return s;
+        }
+    }
+
+    public String searchArea(String area) {
+        String data = "";
+        ConnectBD cbd = new ConnectBD();
+        try {
+            Connection con = cbd.connectBD();
+            //stmt is the statement's object. It's used to create statements or queries.
+            Statement stmt = con.createStatement();
+
+            //devices is the table's name.
+            ResultSet rs = stmt.executeQuery("select * from devices where lugar = '" + area + "'");
+
+            while (rs.next()) {
+                data += rs.getString(2) + "#" + rs.getString(3) + "#" + rs.getString(4) + "#" + rs.getString(5) + "#";
+            }
+            data = deleteLastChar(data);
+            con.close();
+        } catch (SQLException ex) {
+            Logger.getLogger(Server_Thread.class.getName()).log(Level.SEVERE, null, ex);
+        }
+
+        return data; //id_bluetooth#name#lugar#date#id_bluetooth#name#lugar#date...
+    }
+
     @Override
     public void run() {
         String msg = "";
@@ -170,29 +256,41 @@ public class Server_Thread extends Thread {
             //Receive msg from the client
             msg = fromClient.readUTF();
 
-            String[] args = msg.split("|");
-            if (args[0].equals("ingresar")) {
-                if (checkID(args[1], args[2], args[3])) {
-                    toClient.writeUTF("Ingresa");
+            String[] dataSet = msg.split("#"); //ingresar#id_bluetooth#nombre#password
+
+            if (dataSet[0].equals("ingresar")) {
+                //Check if the user and password match.
+                if (checkID(dataSet[1], dataSet[2], dataSet[3])) {
+                    toClient.writeUTF("ingresa");
                 } else {
                     toClient.writeUTF("noIngresa");
                 }
-            } else if (args[0].equals("register")) {
-                if (!checkIDexist(args[1], args[2], args[3])) {
-                    insertPerson(args[1], args[2], args[3]);
-                    toClient.writeUTF("Registrado");
+            } else if (dataSet[0].equals("registrar")) { //registras#id_bluetooth#nombre#password
+                //Check if the person already exists.
+                if (!checkIDexist(dataSet[1], dataSet[2], dataSet[3])) {
+                    insertPerson(dataSet[1], dataSet[2], dataSet[3]);
+                    toClient.writeUTF("signUp");
                 } else {
-                    toClient.writeUTF("yaExiste");
+                    toClient.writeUTF("userExists");
                 }
-            } else {
-
-                System.out.println("Message Recived: " + msg);
-                String datetime = "2016-04-01 23:55:20";
-                String ibt = "bt123456789";
+            } else if (dataSet[0].equals("searchPerson")) {  //searchPerson#name
+                String persona = buscarPersona(dataSet[1]);
+                toClient.writeUTF(persona); //notFound if user doesn't exist and id_bluetooth#name#lugar#date
+            } else if (dataSet[0].equals("searchAll")) { //searchAll
+                String Todos = buscarTodos();
+                toClient.writeUTF(Todos); //id_bluetooth#name#lugar#date#id_bluetooth#name#lugar#date...
+            } else if (dataSet[0].equals("searchArea")) { //searchArea#location
+                String userInArea = searchArea(dataSet[1]);
+                toClient.writeUTF(userInArea); //id_bluetooth#name#lugar#date#id_bluetooth#name#lugar#date...
+            } else if (dataSet[0].equals("updateLocation")) { //updateLocation#id_bluetooth#location
+//                System.out.println("Message Recived: " + msg);
+                String ibt = dataSet[1];
+                String lugar = dataSet[2];
+                String datetime = getDate();
                 //Create the query to the local database.
                 if (PreviusClass.conn != null) {
                     Statement stmt = PreviusClass.conn.createStatement(); //stmt is the object to create statements.
-                    stmt.executeUpdate("UPDATE `devices` SET `lugar`='" + msg + "',`datetime`='" + datetime + "' WHERE id_bluetooth='" + ibt + "'");
+                    stmt.executeUpdate("UPDATE `devices` SET `lugar`='" + lugar + "',`datetime`='" + datetime + "' WHERE id_bluetooth='" + ibt + "'");
                     System.out.println("Local query performed...[OK].");
                     toClient.writeUTF("Acknowledge");
                 } else {
@@ -200,9 +298,8 @@ public class Server_Thread extends Thread {
                     PreviusClass.conn = conni;
                     toClient.writeUTF("noDB");
                 }
-
                 if (stub != null) {
-                    stub.updateRow(ibt, msg, datetime);
+                    stub.updateRow(ibt, msg, datetime, "pass");
                     System.out.println("External query performed...[OK]");
                 } else {
                     PreviusClass.sendBD = false;
@@ -213,7 +310,6 @@ public class Server_Thread extends Thread {
         } catch (IOException ex) {
             //Logger.getLogger(Server_Thread.class.getName()).log(Level.SEVERE, null, ex);
             System.out.println("External query performed...[FAILED]");
-
             try {
                 stub.sayHello(); // Function to test RMI connection.
             } catch (Exception ex1) {
