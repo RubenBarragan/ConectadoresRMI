@@ -255,13 +255,12 @@ public class ServerRMI implements RMI_Interface {
 
             //devices is the table's name.
             rs = stmt.executeQuery("select * from devices");
-
             
             RMI_Interface stub = connectToServer(externalIP, 1099);
             while (rs.next()) {
                 stub.recoveryBD(rs.getString(2), rs.getString(3), rs.getString(4), rs.getString(5), rs.getString(6));
             }
-
+            
             con.close();
         } catch (SQLException ex) {
             Logger.getLogger(ServerRMI.class.getName()).log(Level.SEVERE, null, ex);
