@@ -150,7 +150,7 @@ public class Server_Thread extends Thread {
             Statement stmt = con.createStatement();
 
             //devices is the table's name.
-            ResultSet rs = stmt.executeQuery("select * from devices where id_bluetooth = '" + idBT + "' and name='" + name + "'");
+            ResultSet rs = stmt.executeQuery("select * from devices where id_bluetooth = '" + idBT + "' or name='" + name + "'");
 
             if (rs.next()) {
                 trueID = true;
